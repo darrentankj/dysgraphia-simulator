@@ -1,92 +1,164 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CC0007 Dysgraphia Demo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-        body { margin: 0; text-align: center; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        canvas { border: 2px solid #333; background: #f9f9f9; touch-action: none; }
-        .controls { padding: 10px; background: #eee; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    </style>
+  <title>Dysgraphia Experience Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 0; }
+    .controls { padding: 10px; background: #eee; }
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+    #paintCanvas { border: 2px solid #333; background: #f9f9f9; display: none; margin: 20px auto; }
+    #keyboard { display: none; flex-wrap: wrap; width: 320px; margin: 20px auto; }
+    .key {
+      width: 30px; height: 30px; margin: 3px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #333; border-radius: 4px;
+      cursor: pointer; background: #eee; font-size: 16px;
+    }
+    textarea { width: 90%; height: 150px; font-size: 18px; margin-top: 20px; display: none; }
+    .caption { margin-top: 15px; font-size: 16px; font-style: italic; }
+  </style>
 </head>
 <body>
-    <div class="controls">
-        <h3>CC0007: Smart Pen Demo</h3>
-        <p>Try to trace the circle with your <b>non-dominant hand</b>.</p>
-        <button onclick="clearCanvas()">Clear</button>
-    </div>
-    <canvas id="paintCanvas"></canvas>
+  <div class="controls">
+    <h2>Dysgraphia Interactive Demo</h2>
+    <p>Select an experience:</p>
+    <button onclick="showHandwriting()">Handwriting Demo</button>
+    <button onclick="showTyping()">Typing Demo</button>
+    <button onclick="clearCanvas()">Clear Canvas</button>
+    <button onclick="resetKeyboard()">Reset Keyboard</button>
+  </div>
 
-    <script>
-        const canvas = document.getElementById('paintCanvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - 100;
+  <!-- Handwriting Caption -->
+  <p id="handwritingCaption" class="caption" style="display:none;">
+    Try to trace the circle with your <b>non-dominant hand</b>.
+  </p>
+  <canvas id="paintCanvas" width="400" height="400"></canvas>
 
-        let drawing = false;
-        
-        // Settings for the "Simulation"
-        const jitterIntensity = 15; // How much the pen "shakes"
-        const lagAmount = 5;       // How many frames the ink trails behind
+  <!-- Keyboard Caption -->
+  <p id="keyboardCaption" class="caption" style="display:none;">
+    Try typing "Dysgraphia". It starts in QWERTY, then jumbles after each letter.
+  </p>
+  <div id="keyboard"></div>
+  <textarea id="output" placeholder="Your text appears here..."></textarea>
 
-        function drawTarget() {
-            ctx.beginPath();
-            ctx.arc(canvas.width/2, canvas.height/2, 100, 0, Math.PI * 2);
-            ctx.strokeStyle = '#ddd';
-            ctx.lineWidth = 20;
-            ctx.stroke();
-        }
+  <script>
+    // ===== Handwriting Demo =====
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
 
-        function getDistance(x1, y1, x2, y2) {
-            return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
-        }
+    let drawing = false;
+    const jitterIntensity = 15;
 
-        function startDrawing(e) { drawing = true; draw(e); }
-        function stopDrawing() { drawing = false; ctx.beginPath(); }
+    function drawTarget() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(canvas.width/2, canvas.height/2, 100, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 20;
+      ctx.stroke();
+    }
 
-        function draw(e) {
-            if (!drawing) return;
-            const t = e.touches ? e.touches[0] : e;
-            
-            // 1. ADD JITTER (The Dysgraphia Simulation)
-            const x = t.clientX + (Math.random() - 0.5) * jitterIntensity;
-            const y = (t.clientY - 100) + (Math.random() - 0.5) * jitterIntensity;
+    function getDistance(x1, y1, x2, y2) {
+      return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
+    }
 
-            // 2. CHECK DISTANCE (The AI Correction Logic)
-            const centerX = canvas.width/2;
-            const centerY = canvas.height/2;
-            const distFromCenter = getDistance(x, y, centerX, centerY);
-            
-            // If user is more than 15px away from the 100px radius circle
-            if (Math.abs(distFromCenter - 100) > 15) {
-                if (navigator.vibrate) navigator.vibrate(50); // Vibrate phone
-                ctx.strokeStyle = "red";
-            } else {
-                ctx.strokeStyle = "green";
-            }
+    function startDrawing(e) { drawing = true; draw(e); }
+    function stopDrawing() { drawing = false; ctx.beginPath(); }
 
-            ctx.lineWidth = 5;
-            ctx.lineCap = "round";
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
+    function draw(e) {
+      if (!drawing) return;
+      const t = e.touches ? e.touches[0] : e;
+      const rect = canvas.getBoundingClientRect();
+      const x = (t.clientX - rect.left) + (Math.random() - 0.5) * jitterIntensity;
+      const y = (t.clientY - rect.top) + (Math.random() - 0.5) * jitterIntensity;
 
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawTarget();
-        }
+      const centerX = canvas.width/2;
+      const centerY = canvas.height/2;
+      const distFromCenter = getDistance(x, y, centerX, centerY);
 
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
+      if (Math.abs(distFromCenter - 100) > 15) {
+        if (navigator.vibrate) navigator.vibrate(50);
+        ctx.strokeStyle = "red";
+      } else {
+        ctx.strokeStyle = "green";
+      }
 
-        drawTarget();
-    </script>
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawTarget();
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    drawTarget();
+
+    // ===== Typing Demo =====
+    const keyboard = document.getElementById("keyboard");
+    const output = document.getElementById("output");
+    const qwerty = "qwertyuiopasdfghjklzxcvbnm".split("");
+    let currentLayout = [...qwerty];
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function renderKeyboard() {
+      keyboard.innerHTML = "";
+      currentLayout.forEach(letter => {
+        let key = document.createElement("div");
+        key.className = "key";
+        key.textContent = letter;
+        key.onclick = () => {
+          output.value += letter;
+          currentLayout = shuffle([...qwerty]); // jumble after each press
+          renderKeyboard();
+        };
+        keyboard.appendChild(key);
+      });
+    }
+
+    function resetKeyboard() {
+      currentLayout = [...qwerty];
+      renderKeyboard();
+    }
+
+    renderKeyboard();
+
+    // ===== Toggle Views =====
+    function showHandwriting() {
+      canvas.style.display = "block";
+      keyboard.style.display = "none";
+      output.style.display = "none";
+      document.getElementById("handwritingCaption").style.display = "block";
+      document.getElementById("keyboardCaption").style.display = "none";
+      clearCanvas();
+    }
+
+    function showTyping() {
+      canvas.style.display = "none";
+      keyboard.style.display = "flex";
+      output.style.display = "block";
+      document.getElementById("handwritingCaption").style.display = "none";
+      document.getElementById("keyboardCaption").style.display = "block";
+    }
+  </script>
 </body>
 </html>
